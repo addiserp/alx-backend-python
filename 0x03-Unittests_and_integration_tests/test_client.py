@@ -134,3 +134,42 @@ class TestGithubOrgClient(unittest.TestCase):
         org_client = GithubOrgClient("google")
         has_license = org_client.has_license(repo, license_key)
         assert (has_license, expected_res)
+
+
+@parameterized_class([
+    {
+        'org_payload': TEST_PAYLOAD[0][0],
+        'repos_payload': TEST_PAYLOAD[0][1],
+        'expected_repos': TEST_PAYLOAD[0][2],
+        'apache2_repos': TEST_PAYLOAD[0][3],
+    }
+    ])
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """
+        TestIntegrationGithubOrgClient(unittest.TestCase) class and implement
+        the setUpClass and tearDownClass which are part of the
+        unittest.TestCase API.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        to decorate the class and parameterize it with
+        fixtures found in fixtures.py
+        """
+        route_payload = {
+                "https://api.github.com/orgs/google": cls.org_payload,
+                "https://api.github.com/orgs/google/repos": cls.repos_payload,
+                }
+
+        def get_payload(url):
+            """
+            will get the payload from route_payload
+            """
+            if url in route_payload:
+                return Mock(**{"json.return_value": route_payload
+                            [url]})
+            return HTTPError
+
+        cls.get_patcher = patch("requests.get", side_effect=get_payload)
+        cls.get_patcher.start()
